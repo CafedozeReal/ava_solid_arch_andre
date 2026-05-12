@@ -2,6 +2,7 @@ const Pet = require ('../models/Pet')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
+
 module.exports = class PetController {
     static async createPet(req, res)
     {
@@ -45,7 +46,27 @@ module.exports = class PetController {
 
         const token = getToken(req)
 
-        user = await getUserByToken(token)
+        const User = await getUserByToken(token)
+
+        const pet = new Pet
+        ({
+            nome,
+            age,
+            weight,
+            color,
+            image,
+            avaliable,
+            User
+        })
+
+        try {
+            const newPet = await pet.save()
+        } catch (err)
+        {
+            res.status(503).json({message: err})
+        }
+
+        
     }
 
     static async getAllUserPet(req, res)
