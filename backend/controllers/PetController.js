@@ -189,11 +189,55 @@ module.exports = class PetController {
 
     static async schedule(req, res)
     {
+        const pet = this.getPetById(req, res)
 
-    }
+        const token = getToken(req)
+        const user = getUserById(token)
+
+        if (pet.user._id.toString() === user._id.toString())
+        {
+            return res.status(422).json({message: 'Não é possível agenter uma visita para si mesmo'})
+        }
+
+        if (pet.adopter && pet.adopter._id && pet.adopter._id.toString() === user._id.toString())
+        {
+            return res.status(422).json({message: 'Você já tem uma visita agendada para esse Pet'})
+        }
+
+        pet.adopter = {
+            _id: user._id,
+            name: user.name,
+            image: user.image,
+        }
+
+        try {
+            await pet.save()
+            return res.status(200).json({message: `Visita agendada! Usuário: ${pet.user.name}; Contato: ${pet.user.phone}`})
+        } catch (err)
+        {
+            return res.status(500).json({message: err.message})
+        }
+    } 
+
 
     static async concludeAdoption(req, res)
     {
-        
+        const pet = this.getPetById(req, res)
+
+        const token = getToken(req)
+        const user = await getUserById(token)
+
+        if (pet.user._id.toString() !== user._id.toString())
+        {
+            return res.status(403).json({message: 'Acesso negado'})
+        }
+
+        try {
+            await pet.findByIdAndUpdate(id, {avaliable: false})
+            return res.status(200).json({message: 'Adoção finalizada'})
+        } catch (err)
+        {
+            return res.status(500).json({message: err.message})
+        }
     }
 }
