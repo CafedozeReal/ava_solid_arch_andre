@@ -6,7 +6,8 @@ const jwt = require('jsonwebtoken')
 module.exports = class PetController {
     static async createPet(req, res)
     {
-        const {nome, age, weight, color, image, avaliable, user} = req.body
+        const {nome, age, weight, color, avaliable, user} = req.body
+        const images = req.files
 
         if (!nome)
         {
@@ -28,7 +29,7 @@ module.exports = class PetController {
             res.status(422).json({message: 'É preciso informar a cor'})
             return
         }
-        if (!image)
+        if (!images || images.lenght === 0)
         {
             res.status(422).json({message: 'É preciso ter uma imagem'})
             return
@@ -47,6 +48,7 @@ module.exports = class PetController {
         const token = getToken(req)
 
         const User = await getUserByToken(token)
+        const imageFile = images.map((images) => image.filename)
 
         const pet = new Pet
         ({
@@ -54,19 +56,32 @@ module.exports = class PetController {
             age,
             weight,
             color,
-            image,
+            image : imageFile,
             avaliable,
-            User
+            User: {
+                _id: user.id,
+                name: user.name,
+                image: user.image,
+                phone: user.phone
+            }
         })
 
         try {
             const newPet = await pet.save()
+            return res.status(201).json({ message: 'Pet Criado com sucesso' })
         } catch (err)
         {
-            res.status(503).json({message: err})
+            return res.status(503).json({message: err})
         }
 
         
+    }
+
+    static async getAll(req, res)
+    {
+        const pets = await Pet.find().sort('-createdAt')
+
+        return res.status(200).json({pets})
     }
 
     static async getAllUserPet(req, res)
