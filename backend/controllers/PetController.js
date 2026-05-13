@@ -1,6 +1,7 @@
 const Pet = require ('../models/Pet')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const { getUserById } = require('./UserController')
 
 
 module.exports = class PetController {
@@ -104,12 +105,41 @@ module.exports = class PetController {
 
     static async getPetById(req, res)
     {
+        const {id} = req.params
 
+        if (!mongoose.Types.ObjectId.isValid(id))
+        {
+            return res.status(422).json({message: "Esse Id não é válido"})
+        }
+
+        const pet = await Pet.findById(id)
+
+        if (!pet)
+        {
+            return res.status(200).json({message: "O Pet não foi encontrado"})
+        }
+
+        return res.status(200).json({pet})
     }
 
     static async removePetById(req, res)
     {
+        const pet = this.getPetById(req, res)
 
+        const token = getToken(req)
+        const user = getUserById(token)
+
+        if (pet.user._id.toString() !== user._id.toString())
+        {
+            return res.status(403).json({message: 'Acesso negado! Esse Pet não pertence a esse usuário'})
+        }
+
+        try {
+        await Pet.findByIdAndDelete(id)
+        return res.status(200).json({message: 'Pet removido com sucesso'})
+        } catch (err) {
+            return res.status(500).json({message: 'Não foi possível excluir esse pet'})
+        }
     }
 
     static async updatePet(req, res)
